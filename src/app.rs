@@ -7,7 +7,7 @@ use argon2::{
 use rand::distr::{Distribution, Uniform};
 use rand::prelude::*;
 use rand_argon_compatible::rngs::OsRng as OsRng08;
-use secret::Secret;
+use secret::{EncryptedSecret, Secret};
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
@@ -33,16 +33,30 @@ pub struct App {
 }
 
 impl App {
-    pub fn new() -> App {
-        App {
+    pub fn new(password_attempt: &str) -> App {
+        let mut app = App {
             secrets: HashMap::new(),
             current_screen: CurrentScreen::Main,
             currently_editing: None,
             master_password_file: PathBuf::from("~/grimoire/password_store/master.txt"),
             password_store: PathBuf::from("~/grimoire/password_store/"),
+        };
+        // init the master_password and secret store
+        app.init();
+        let attempt = app.authenticate(password_attempt);
+        if attempt.expect("Error") {
+            let salt = app.get_salt();
+            let mut output_key_material = [0u8; 32];
+            Argon2::default()
+                .hash_password_into(password_attempt.as_bytes(), &salt, &mut output_key_material)
+                .unwrap();
+            app.populate_secrets(output_key_material);
+            app
+        } else {
+            std::process::exit(1)
         }
     }
-    fn authenticate(self, master_password: &str) -> Result<bool, argon2::password_hash::Error> {
+    fn authenticate(&self, master_password: &str) -> Result<bool, argon2::password_hash::Error> {
         let hash = fs::read_to_string(&self.master_password_file).expect("should  have read file");
         let parsed_hash = PasswordHash::new(&hash)?;
 
@@ -51,7 +65,7 @@ impl App {
             .is_ok())
     }
 
-    fn get_salt(self) -> [u8; 16] {
+    fn get_salt(&self) -> [u8; 16] {
         let hash = fs::read_to_string(&self.master_password_file).expect("Should have read file");
         let hash_obj = PasswordHash::new(&hash).unwrap();
         match hash_obj.salt {
@@ -81,7 +95,7 @@ impl App {
         password
     }
 
-    fn set_master_password(self) {
+    fn set_master_password(&self) {
         //GET INPUT
         let master_password = "1234";
         if let Some(parent) = &self.master_password_file.parent() {
@@ -101,7 +115,7 @@ impl App {
         }
     }
 
-    fn init(self) {
+    fn init(&mut self) {
         let contents = fs::read_to_string(&self.master_password_file);
         match contents {
             Ok(text) => {
@@ -113,5 +127,17 @@ impl App {
                 self.set_master_password();
             }
         }
+    }
+    fn populate_secrets(&mut self, key: [u8; 32]) -> std::io::Result<()> {
+        for entry in fs::read_dir(self.password_store.clone())? {
+            let entry = entry?;
+            let path = entry.path();
+            if path == self.master_password_file {
+                continue;
+            }
+            let secret: Secret = EncryptedSecret::decrypt(key, path);
+            self.secrets.insert(String::from(secret.get_name()), secret);
+        }
+        Ok(())
     }
 }

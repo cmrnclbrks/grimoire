@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::env;
 use std::fs;
+use std::path::PathBuf;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Secret {
@@ -82,7 +83,7 @@ impl Secret {
 }
 
 impl EncryptedSecret {
-    pub fn decrypt(key: [u8; 32], name: &str) -> Secret {
+    pub fn decrypt(key: [u8; 32], name: PathBuf) -> Secret {
         let contents = fs::read_to_string(name); //deserialize here, the problem is that you need to deserialize twice because of the nonce
         match contents {
             Ok(text) => {
