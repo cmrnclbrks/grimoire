@@ -30,6 +30,7 @@ pub struct App {
     pub currently_editing: Option<CurrentlyEditing>,
     pub master_password_file: PathBuf,
     pub password_store: PathBuf,
+    key: [u8; 32],
 }
 
 impl App {
@@ -38,19 +39,23 @@ impl App {
             secrets: HashMap::new(),
             current_screen: CurrentScreen::Main,
             currently_editing: None,
-            master_password_file: PathBuf::from("~/grimoire/password_store/master.txt"),
-            password_store: PathBuf::from("~/grimoire/password_store/"),
+            master_password_file: PathBuf::from("/home/chandler/grimoire/password_store/master.txt"),
+            password_store: PathBuf::from("/home/chandler/grimoire/password_store/"),
+            key: [0u8; 32],
+
         };
         // init the master_password and secret store
         app.init();
         let attempt = app.authenticate(password_attempt);
         if attempt.expect("Error") {
             let salt = app.get_salt();
-            let mut output_key_material = [0u8; 32];
+            let mut key = [0u8; 32];
             Argon2::default()
-                .hash_password_into(password_attempt.as_bytes(), &salt, &mut output_key_material)
+                .hash_password_into(password_attempt.as_bytes(), &salt, &mut key)
                 .unwrap();
-            app.populate_secrets(output_key_material);
+            app.key = key;
+            let _ = app.populate_secrets(key);
+            //let _ = app.add_secret("my_secret4", "username2", "password2");
             app
         } else {
             std::process::exit(1)
@@ -139,5 +144,10 @@ impl App {
             self.secrets.insert(String::from(secret.get_name()), secret);
         }
         Ok(())
+    }
+    fn add_secret(&mut self, name: &str, username: &str, password: &str) {
+        let secret = Secret::new(name, username, password);
+        secret.save(self.key, self.password_store.clone());
+        self.secrets.insert(String::from(name), secret);
     }
 }

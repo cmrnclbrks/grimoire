@@ -34,7 +34,7 @@ impl Secret {
         }
     }
 
-    pub fn save(&self, key: [u8; 32]) -> Result<(), std::io::Error> {
+    pub fn save(&self, key: [u8; 32], mut filepath: PathBuf) -> Result<(), std::io::Error> {
         let aes_key = Key::<Aes256Gcm>::from_slice(&key).clone();
         let cipher = Aes256Gcm::new(&aes_key);
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
@@ -46,8 +46,6 @@ impl Secret {
             "nonce": *nonce
         });
 
-        let mut filepath = env::home_dir().expect("No home directory found");
-        filepath.push("magi/password_store/");
         filepath.push(&self.name.as_str());
 
         fs::write(filepath, json.to_string())
