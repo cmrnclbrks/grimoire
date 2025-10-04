@@ -10,7 +10,64 @@ use ratatui::{
 use crate::app::{App, CurrentScreen, CurrentlyEditing};
 use crate::secret::Secret;
 
+const LOCK_ART: &str = include_str!("../assets/lock.txt");
+
 pub fn ui(frame: &mut Frame, app: &App) {
+    //Login
+    if let CurrentScreen::Login = app.current_screen {
+        frame.render_widget(Clear, frame.area()); // clear background
+
+        let area = centered_rect(50, 30, frame.area());
+
+        // Outer container
+        let block = Block::default()
+            .title("🔒  Grimoire Login")
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(Color::Gray))
+            .style(Style::default().bg(Color::Black));
+
+        frame.render_widget(block, area);
+
+        // Split inner area vertically: title, input, hint
+        let inner_chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .margin(2)
+            .constraints([
+                Constraint::Length(3), // lock + header
+                Constraint::Length(3), // input
+                Constraint::Length(1), // spacer
+                Constraint::Length(1), // hint
+            ])
+            .split(area);
+
+        let lock_text = Paragraph::new(Text::from(LOCK_ART))
+            .style(Style::default().fg(Color::Cyan))
+            .alignment(Alignment::Center);
+        frame.render_widget(lock_text, inner_chunks[0]);
+
+        // Password input box
+        let masked_input = "*".repeat(app.scratch.len());
+        let input_paragraph = Paragraph::new(masked_input)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Master Password")
+                    .border_style(Style::default().fg(Color::White)),
+            )
+            .style(Style::default().fg(Color::Yellow))
+            .alignment(Alignment::Center);
+
+        frame.render_widget(input_paragraph, inner_chunks[1]);
+
+        // Hint text
+        let hint = Paragraph::new("Press Enter to unlock, or ESC to quit.")
+            .style(Style::default().fg(Color::DarkGray))
+            .alignment(Alignment::Center);
+        frame.render_widget(hint, inner_chunks[3]);
+
+        return; // don't render anything else yet
+    }
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -107,6 +164,7 @@ pub fn ui(frame: &mut Frame, app: &App) {
                 "(q) to quit / (e) to make new pair",
                 Style::default().fg(Color::Red),
             ),
+            _ => Span::styled("", Style::default()),
         }
     };
 

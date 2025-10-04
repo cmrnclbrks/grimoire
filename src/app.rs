@@ -37,6 +37,8 @@ pub struct App {
     pub name_input: String,
     pub username_input: String,
     pub password_input: String,
+    pub scratch: String,
+
     key: [u8; 32],
 }
 
@@ -54,15 +56,17 @@ impl App {
             password_store: PathBuf::from("/home/chandler/grimoire/password_store/"),
             secrets_per_row: 3,
             name_input: String::from(""),
-            username_input: String::from(""),
-            password_input: String::from(""),
+            username_input: String::new(),
+            password_input: String::new(),
+            scratch: String::new(),
             key: [0u8; 32],
         };
         // init the master_password and secret store
         app.init();
+        app
 
         // call authenticate in main.rs under the Login branch of the match statement
-        let attempt = app.authenticate(password_attempt);
+        /*let attempt = app.authenticate(password_attempt);
         if attempt.expect("Error") {
             let salt = app.get_salt();
             let mut key = [0u8; 32];
@@ -74,15 +78,36 @@ impl App {
             app
         } else {
             std::process::exit(1)
-        }
+        }*/
     }
-    fn authenticate(&self, master_password: &str) -> Result<bool, argon2::password_hash::Error> {
-        let hash = fs::read_to_string(&self.master_password_file).expect("should  have read file");
+    pub fn authenticate(
+        &mut self,
+        master_password: &str,
+    ) -> Result<bool, argon2::password_hash::Error> {
+        // read stored hash
+        let hash = fs::read_to_string(&self.master_password_file).expect("should have read file");
         let parsed_hash = PasswordHash::new(&hash)?;
 
-        Ok(Argon2::default()
+        // verify the password
+        if Argon2::default()
             .verify_password(master_password.as_bytes(), &parsed_hash)
-            .is_ok())
+            .is_ok()
+        {
+            // derive key from password + salt
+            let salt = self.get_salt();
+            let mut key = [0u8; 32];
+            Argon2::default()
+                .hash_password_into(master_password.as_bytes(), &salt, &mut key)
+                .unwrap();
+
+            // store and populate
+            self.key = key;
+            let _ = self.populate_secrets(key);
+
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 
     fn get_salt(&self) -> [u8; 16] {
@@ -115,7 +140,7 @@ impl App {
         password
     }
 
-    fn set_master_password(&self) {
+    pub fn set_master_password(&self) {
         //GET INPUT
         let master_password = "1234";
         if let Some(parent) = &self.master_password_file.parent() {
@@ -224,9 +249,10 @@ impl App {
     pub fn clear_input_fields(&mut self) {
         self.currently_selected_secret_idx = None;
         self.currently_editing = None;
-        self.name_input = String::from("");
-        self.username_input = String::from("");
-        self.password_input = String::from("");
+        self.name_input.clear();
+        self.username_input.clear();
+        self.password_input.clear();
+        self.scratch.clear();
     }
 
     pub fn populate_input_fields_from_secret(&mut self) {

@@ -26,6 +26,36 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                 continue;
             }
             match app.current_screen {
+                CurrentScreen::Init => match key.code {
+                    KeyCode::Enter => {
+                        app.set_master_password();
+                        app.clear_input_fields();
+                    }
+                    KeyCode::Backspace | KeyCode::Char('\x08') | KeyCode::Char('\x7f') => {
+                        app.password_input.pop();
+                    }
+                    KeyCode::Char(value) => {
+                        app.password_input.push(value);
+                    }
+                    _ => {}
+                },
+                CurrentScreen::Login => match key.code {
+                    KeyCode::Enter => {
+                        let attempt = app.authenticate(&app.scratch.clone()).unwrap();
+                        if attempt {
+                            app.current_screen = CurrentScreen::Main;
+                        }
+                        app.clear_input_fields();
+                    }
+                    KeyCode::Esc => return Ok(true),
+                    KeyCode::Backspace | KeyCode::Char('\x08') | KeyCode::Char('\x7f') => {
+                        app.scratch.pop();
+                    }
+                    KeyCode::Char(value) => {
+                        app.scratch.push(value);
+                    }
+                    _ => {}
+                },
                 CurrentScreen::Main => match key.code {
                     KeyCode::Char('q') => return Ok(true),
                     KeyCode::Esc => app.currently_selected_secret_idx = None,
