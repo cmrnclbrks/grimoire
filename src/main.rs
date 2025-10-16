@@ -1,5 +1,4 @@
 mod app;
-mod config;
 mod secret;
 mod ui;
 
@@ -208,7 +207,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // create app and run it
-    let mut app = App::new("1234");
+    let mut app = App::new();
     let _res = run_app(&mut terminal, &mut app);
 
     // restore terminal

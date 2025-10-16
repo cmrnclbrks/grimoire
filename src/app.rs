@@ -9,8 +9,22 @@ use rand::distr::{Distribution, Uniform};
 use rand::prelude::*;
 use rand_argon_compatible::rngs::OsRng as OsRng08;
 use secret::{EncryptedSecret, Pair, Secret};
+use serde::Deserialize;
 use std::fs;
 use std::path::PathBuf;
+
+#[derive(Deserialize)]
+struct Config {
+    master_password_file: String,
+    password_store: String,
+}
+
+impl Config {
+    fn load() -> Self {
+        let content = fs::read_to_string("config.toml").expect("failed to read config");
+        toml::from_str(&content).expect("invalid config")
+    }
+}
 
 pub enum CurrentScreen {
     Main,
@@ -46,17 +60,16 @@ pub struct App {
 
 #[allow(clippy::single_match)]
 impl App {
-    pub fn new(password_attempt: &str) -> App {
+    pub fn new() -> App {
+        let config = Config::load();
         let mut app = App {
             secrets: Vec::new(),
             secret_scratch_content: Vec::new(),
             current_screen: CurrentScreen::Login,
             currently_selected_secret_idx: None,
             currently_editing: None,
-            master_password_file: PathBuf::from(
-                "/home/chandler/grimoire/password_store/master.txt",
-            ),
-            password_store: PathBuf::from("/home/chandler/grimoire/password_store/"),
+            master_password_file: PathBuf::from(config.master_password_file),
+            password_store: PathBuf::from(config.password_store),
             secrets_per_row: 3,
             name_input: String::from(""),
             key_input: String::new(),
