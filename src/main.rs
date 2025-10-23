@@ -70,7 +70,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                         app.current_screen = CurrentScreen::New;
                         app.currently_editing = Some(CurrentlyEditing::Name);
                     }
-                    KeyCode::Char('x') => {
+                    KeyCode::Char('x') | KeyCode::Delete => {
                         app.delete_secret();
                         app.clear_input_fields();
                     }
@@ -87,6 +87,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                 CurrentScreen::New => match key.code {
                     KeyCode::Esc => {
                         app.current_screen = CurrentScreen::Main;
+                        app.save_secret();
                         app.clear_input_fields();
                     }
                     KeyCode::Tab => {
@@ -97,9 +98,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                     }
                     KeyCode::Enter => {
                         app.add_pair();
-                        app.save_secret();
-                        app.current_screen = CurrentScreen::Main;
-                        app.clear_input_fields();
+                        app.clear_key_value_fields();
                     }
                     KeyCode::BackTab => {
                         app.decrement_currently_editing();
@@ -136,6 +135,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                 CurrentScreen::Editing => match key.code {
                     KeyCode::Esc => {
                         app.current_screen = CurrentScreen::Main;
+                        app.update_secret();
                         app.clear_input_fields();
                     }
                     KeyCode::Tab => {
@@ -145,11 +145,8 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                         app.delete_pair();
                     }
                     KeyCode::Enter => {
-                        // You need to save the new value
                         app.add_pair();
-                        app.update_secret();
-                        app.clear_input_fields();
-                        app.current_screen = CurrentScreen::Main;
+                        app.clear_key_value_fields();
                     }
                     KeyCode::BackTab => {
                         app.decrement_currently_editing();

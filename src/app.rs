@@ -227,14 +227,18 @@ impl App {
             key: self.key_input.clone(),
             value: self.value_input.clone(),
         };
-        self.secret_scratch_content.push(pair);
+        if !pair.key.is_empty() {
+            self.secret_scratch_content.push(pair);
+        }
     }
 
     pub fn delete_pair(&mut self) {
         match self.currently_editing {
             Some(CurrentlyEditing::Key(idx)) | Some(CurrentlyEditing::Value(idx)) => {
-                self.secret_scratch_content.remove(idx);
-                self.update_secret();
+                if idx < self.secret_scratch_content.len() {
+                    self.secret_scratch_content.remove(idx);
+                    self.update_secret();
+                }
             }
             _ => (),
         }
@@ -324,6 +328,11 @@ impl App {
         self.value_input.clear();
         self.secret_scratch_content.clear();
         self.scratch.clear();
+    }
+
+    pub fn clear_key_value_fields(&mut self) {
+        self.key_input.clear();
+        self.value_input.clear();
     }
 
     pub fn select_new_secret(&mut self, input: KeyCode) {
