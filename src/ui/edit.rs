@@ -65,21 +65,37 @@ pub fn render_edit_popup(frame: &mut Frame, app: &App) {
     // --- Pairs ---
     let offset = 2;
     for (i, pair) in pairs_to_render.iter().enumerate() {
-        let selected = matches!(app.currently_editing, Some(CurrentlyEditing::Key(idx)) if i == idx)
-            || matches!(app.currently_editing, Some(CurrentlyEditing::Value(idx)) if i == idx);
+        let editing_key =
+            matches!(app.currently_editing, Some(CurrentlyEditing::Key(idx)) if i == idx);
+        let editing_value =
+            matches!(app.currently_editing, Some(CurrentlyEditing::Value(idx)) if i == idx);
+        let selected = editing_key || editing_value;
 
         let border_style = if selected {
             Style::default().fg(Color::Cyan)
         } else {
             Style::default().fg(Color::White)
         };
+
+        let key_style = if editing_key {
+            Style::default().fg(Color::Cyan).bg(Color::DarkGray)
+        } else {
+            Style::default().fg(Color::Cyan)
+        };
+
+        let value_style = if editing_value {
+            Style::default().fg(Color::Yellow).bg(Color::DarkGray)
+        } else {
+            Style::default().fg(Color::Yellow)
+        };
         let pair_text = Line::from(vec![
+            Span::raw("  "),
             Span::styled(
                 format!("{:<width$}", pair.key, width = longest_key),
-                Style::default().fg(Color::Cyan),
+                key_style,
             ),
             Span::raw(" : "),
-            Span::styled(&pair.value, Style::default().fg(Color::Yellow)),
+            Span::styled(&pair.value, value_style),
         ]);
 
         let pair_block = Paragraph::new(pair_text)
@@ -144,4 +160,3 @@ pub fn render_edit_popup(frame: &mut Frame, app: &App) {
 
     frame.render_widget(hint, *layout_chunks.last().unwrap());
 }
-
