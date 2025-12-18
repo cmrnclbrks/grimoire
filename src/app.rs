@@ -1,5 +1,6 @@
 use crate::secret;
 
+use arboard::Clipboard;
 use argon2::{
     Argon2,
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
@@ -82,7 +83,7 @@ pub struct App {
     pub search_buffer: VecDeque<usize>,
     pub scratch: String,
     pub unlocked: bool,
-
+    pub clipboard: Clipboard,
     key: [u8; 32],
 }
 
@@ -105,6 +106,7 @@ impl App {
             value_input: String::new(),
             scratch: String::new(),
             unlocked: false,
+            clipboard: Clipboard::new().unwrap(),
             key: [0u8; 32],
         };
         // init the master_password and secret store

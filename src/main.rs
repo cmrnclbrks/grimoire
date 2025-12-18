@@ -3,7 +3,8 @@ mod secret;
 mod ui;
 
 use app::{App, CurrentScreen, CurrentlyEditing};
-use crossterm::event::{self, Event, KeyCode};
+use crossterm::event::ModifierKeyCode;
+use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use ratatui::backend::Backend;
 use ratatui::crossterm::event::DisableMouseCapture;
 use ratatui::crossterm::event::EnableMouseCapture;
@@ -374,6 +375,24 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -> io::
                     }
                     KeyCode::Left | KeyCode::Right | KeyCode::Up | KeyCode::Down => {
                         app.select_new_pair(key.code);
+                    }
+                    KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                        if let Some(editing) = app.currently_editing.clone() {
+                            match editing {
+                                CurrentlyEditing::Name => {
+                                    let text = app.name_input.clone();
+                                    app.clipboard.set_text(text).unwrap();
+                                }
+                                CurrentlyEditing::Key(_) => {
+                                    let text = app.key_input.clone();
+                                    app.clipboard.set_text(text).unwrap();
+                                }
+                                CurrentlyEditing::Value(_) => {
+                                    let text = app.value_input.clone();
+                                    app.clipboard.set_text(text).unwrap();
+                                }
+                            }
+                        }
                     }
                     KeyCode::Backspace | KeyCode::Char('\x08') | KeyCode::Char('\x7f') => {
                         if let Some(editing) = app.currently_editing.clone() {
