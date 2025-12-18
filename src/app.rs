@@ -4,6 +4,7 @@ use argon2::{
     Argon2,
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
 };
+use cli_clipboard::{ClipboardContext, ClipboardProvider};
 use crossterm::event::KeyCode;
 use dirs::config_dir;
 use rand::distr::{Distribution, Uniform};
@@ -82,7 +83,7 @@ pub struct App {
     pub search_buffer: VecDeque<usize>,
     pub scratch: String,
     pub unlocked: bool,
-
+    pub clipboard: ClipboardContext,
     key: [u8; 32],
 }
 
@@ -105,6 +106,7 @@ impl App {
             value_input: String::new(),
             scratch: String::new(),
             unlocked: false,
+            clipboard: ClipboardContext::new().unwrap(),
             key: [0u8; 32],
         };
         // init the master_password and secret store
@@ -319,9 +321,11 @@ impl App {
     }
 
     pub fn save_secret(&mut self) {
-        let secret = Secret::new(&self.name_input, self.secret_scratch_content.clone());
-        self.secrets.push(secret);
-        self.write_secrets_to_disk();
+        if !&self.name_input.is_empty() {
+            let secret = Secret::new(&self.name_input, self.secret_scratch_content.clone());
+            self.secrets.push(secret);
+            self.write_secrets_to_disk();
+        }
     }
 
     pub fn write_secrets_to_disk(&mut self) {
