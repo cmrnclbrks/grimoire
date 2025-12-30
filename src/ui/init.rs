@@ -73,9 +73,9 @@ pub fn render_init(frame: &mut Frame, app: &App) {
     let horizontal_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Percentage(20), // left spacer
-            Constraint::Percentage(60), // center column (ASCII art)
-            Constraint::Percentage(20), // right spacer
+            Constraint::Min(0),     // flexible left
+            Constraint::Length(25), // fixed-width art
+            Constraint::Min(0),     // flexible right
         ])
         .split(key_area);
 

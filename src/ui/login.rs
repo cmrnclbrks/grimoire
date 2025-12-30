@@ -67,9 +67,9 @@ pub fn render_login(frame: &mut Frame, app: &App) {
     let horizontal_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Percentage(35), // left spacer
-            Constraint::Percentage(30), // center column (ASCII art)
-            Constraint::Percentage(35), // right spacer
+            Constraint::Min(0),     // flexible left
+            Constraint::Length(25), // fixed-width art
+            Constraint::Min(0),     // flexible right
         ])
         .split(lock_area);
 
