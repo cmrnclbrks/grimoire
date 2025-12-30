@@ -11,12 +11,12 @@ use rand::distr::{Distribution, Uniform};
 use rand::prelude::*;
 use rand_argon_compatible::rngs::OsRng as OsRng08;
 use secret::{EncryptedSecret, Pair, Secret};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 use std::fs;
 use std::path::PathBuf;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct Config {
     master_password_file: PathBuf,
     password_store: PathBuf,
@@ -30,7 +30,6 @@ impl Config {
         let config_path = config_dir()
             .unwrap_or_else(|| PathBuf::from("."))
             .join("grimoire/config.toml");
-        eprintln!("{:?}", config_path);
 
         let content = match fs::read_to_string(&config_path) {
             Ok(s) if !s.trim().is_empty() => s,
@@ -48,14 +47,19 @@ impl Config {
             }
         }
 
+        // if we reach this point, we need to create the config file and use defaults
         let base_dir = config_dir().unwrap_or_else(|| PathBuf::from("."));
-        Self {
+        let config = Self {
             master_password_file: base_dir.join("grimoire/password_store/master_password"),
             password_store: base_dir.join("grimoire/password_store.json"),
             secrets_per_row: 3,
             password_generator_length: 16,
             password_generator_symbols_flag: true,
-        }
+        };
+
+        let config_string = toml::to_string(&config).unwrap();
+        let _ = fs::write(config_path, config_string);
+        config
     }
 }
 
@@ -111,7 +115,7 @@ impl App {
             clipboard: ClipboardContext::new().unwrap(),
             key: [0u8; 32],
         };
-        // init the master_password and secret store
+        // initialize the master_password and secret store
         app.init();
         app
     }
